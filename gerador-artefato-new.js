@@ -5,6 +5,34 @@ const exec = util.promisify(require('child_process').exec);
 const args = process.argv.slice(2)
 const params = obterParametros();
 
+class Artefato {
+  constructor(_nomeArtefato, _nomeProjeto, _listaTarefa) {
+    this.nomeArtefato = _nomeArtefato,
+      this.nomeProjeto = _nomeProjeto,
+      this.listaTarefa = _listaTarefa
+  }
+
+  nomeArtefatoReverso() {
+    return this.nomeArtefato.split('').reverse().join('')
+  }
+}
+
+class Tarefa {
+  constructor(_numTarefa, _tipoAlteracao, _numeroAlteracao) {
+    this.numTarefa = _numTarefa,
+    this.tipoAlteracao = _tipoAlteracao,
+    this.numeroAlteracao = _numeroAlteracao
+  }
+
+  isTipoAlteracaoDelecao() {
+    return this.tipoAlteracao === 'D'
+  }
+
+  isTipoAlteracaoModificacao() {
+    return this.tipoAlteracao === 'M'
+  }
+}
+
 init()
 
 function init() {
@@ -100,10 +128,10 @@ function listarArtefatoDuasModificacoes(listaArtefato) {
 
       if (listaTarefaMesmoTipo.length) {
 
-        listaArtefatoDuasModificacoes.push({
-          nomeArtefato: artefato.nomeArtefato,
-          listaTarefa: listaTarefaMesmoTipo
-        })
+        listaArtefatoDuasModificacoes.push(new Artefato(
+          artefato.nomeArtefato,
+          undefined,
+          listaTarefaMesmoTipo))
       }
     }
   })
@@ -136,11 +164,10 @@ function listarArtefatoUmTipoModificacao(listaArtefato) {
           return !retorno
         })
 
-      listaArtefatoAteUmTipo.push({
-        nomeArtefato: artefato.nomeArtefato,
-        nomeProjeto: artefato.nomeProjeto,
-        listaTarefa: listaTarefaUnicoTipoAlteracao
-      })
+      listaArtefatoAteUmTipo.push(new Artefato(
+        artefato.nomeArtefato,
+        artefato.nomeProjeto,
+        listaTarefaUnicoTipoAlteracao))
     }
   })
 
@@ -196,19 +223,14 @@ function removerArtefatoDeletado(listaArtefato) {
 
 function ordenarListaArtefato(artefatoA, artefatoB) {
   return artefatoA.nomeProjeto.localeCompare(artefatoB.nomeProjeto) ||
-    reverterNomeArtefato(artefatoA.nomeArtefato).localeCompare(
-      reverterNomeArtefato(artefatoB.nomeArtefato))
-}
-
-function reverterNomeArtefato(nomeArtefato) {
-  return nomeArtefato.split('').reverse().join('')
+    artefatoA.nomeArtefatoReverso().localeCompare(artefatoB.nomeArtefatoReverso())
 }
 
 async function executarComandoGitLog(diretorio, projeto, autor, task) {
 
   const caminhoProjeto = path.join(diretorio, projeto)
 
-  let comando = 'git -C ' + caminhoProjeto + ' log --regexp-ignore-case --no-merges --author=' + 
+  let comando = 'git -C ' + caminhoProjeto + ' log --regexp-ignore-case --no-merges --author=' +
     autor + ' --all --name-status -C --grep=' + task;
 
   var retorno = await exec(comando);
@@ -235,17 +257,8 @@ function obterListaArtefatoTask({ task, nomeProjeto, stdout }) {
         .replace(/^/g, diretorioProjeto + '/')
         .replace(/\s+/g, ' ' + diretorioProjeto + '/')
 
-      const tarefa = {
-        numTarefa: task,
-        tipoAlteracao: tipoAlteracao,
-        numeroAlteracao: 1
-      }
-
-      const artefato = {
-        nomeArtefato: nomeArtefato,
-        nomeProjeto: nomeProjeto,
-        listaTarefa: [tarefa]
-      }
+      const tarefa = new Tarefa(task, tipoAlteracao, 1)
+      const artefato = new Artefato(nomeArtefato, nomeProjeto, [tarefa])
 
       if (accum.length === 0) {
 
@@ -253,13 +266,13 @@ function obterListaArtefatoTask({ task, nomeProjeto, stdout }) {
 
       } else if (accum.length > 0) {
 
-        let artefatoEncontrado = accum.find(artefato => 
+        let artefatoEncontrado = accum.find(artefato =>
           artefato.nomeArtefato === nomeArtefato)
 
         if (artefatoEncontrado) {
 
           let taskModificacaoEncontrada = artefatoEncontrado.listaTarefa.find(tarefa =>
-            tarefa.numTarefa === task && tarefa.tipoAlteracao === 'M'
+            tarefa.numTarefa === task && tarefa.isTipoAlteracaoModificacao()
           )
 
           if (taskModificacaoEncontrada && tipoAlteracao === 'M') {
@@ -305,7 +318,7 @@ function obterParametros() {
 
   return args.reduce((accum, arg) => {
     accum[obterKey(arg)] = obterValue(arg)
-    
+
     return accum
   }, {});
 }
