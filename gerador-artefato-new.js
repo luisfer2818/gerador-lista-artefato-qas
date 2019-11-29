@@ -5,34 +5,6 @@ const exec = util.promisify(require('child_process').exec);
 const args = process.argv.slice(2)
 const params = obterParametros();
 
-class Artefato {
-  constructor(_nomeArtefato, _nomeProjeto, _listaTarefa) {
-    this.nomeArtefato = _nomeArtefato,
-      this.nomeProjeto = _nomeProjeto,
-      this.listaTarefa = _listaTarefa
-  }
-
-  nomeArtefatoReverso() {
-    return this.nomeArtefato.split('').reverse().join('')
-  }
-}
-
-class Tarefa {
-  constructor(_numTarefa, _tipoAlteracao, _numeroAlteracao) {
-    this.numTarefa = _numTarefa,
-    this.tipoAlteracao = _tipoAlteracao,
-    this.numeroAlteracao = _numeroAlteracao
-  }
-
-  isTipoAlteracaoDelecao() {
-    return this.tipoAlteracao === 'D'
-  }
-
-  isTipoAlteracaoModificacao() {
-    return this.tipoAlteracao === 'M'
-  }
-}
-
 init()
 
 function init() {
@@ -217,7 +189,7 @@ function listarProjetoPorTask(listaComandoExecutado) {
 
 function removerArtefatoDeletado(listaArtefato) {
   return listaArtefato.filter(artefato => {
-    return !artefato.listaTarefa.some(tarefa => tarefa.tipoAlteracao === 'D')
+    return !artefato.listaTarefa.some(tarefa => tarefa.isTipoAlteracaoDelecao())
   })
 }
 
@@ -271,11 +243,11 @@ function obterListaArtefatoTask({ task, nomeProjeto, stdout }) {
 
         if (artefatoEncontrado) {
 
-          let taskModificacaoEncontrada = artefatoEncontrado.listaTarefa.find(tarefa =>
-            tarefa.numTarefa === task && tarefa.isTipoAlteracaoModificacao()
+          let taskModificacaoEncontrada = artefatoEncontrado.listaTarefa.find(tarefaFind =>
+            tarefaFind.numTarefa === task && tarefaFind.isTipoAlteracaoModificacao()
           )
 
-          if (taskModificacaoEncontrada && tipoAlteracao === 'M') {
+          if (taskModificacaoEncontrada && tarefa.isTipoAlteracaoModificacao()) {
             taskModificacaoEncontrada.numeroAlteracao += 1
           } else {
             artefatoEncontrado.listaTarefa.push(tarefa)
@@ -316,10 +288,10 @@ function filtrarComandosComSaida(listaComandoExecutado) {
 
 function obterParametros() {
 
-  return args.reduce((accum, arg) => {
-    accum[obterKey(arg)] = obterValue(arg)
+  return args.reduce((accumParam, arg) => {
+    accumParam[obterKey(arg)] = obterValue(arg)
 
-    return accum
+    return accumParam
   }, {});
 }
 
@@ -342,4 +314,38 @@ function obterValue(arg) {
   }
 
   return value
+}
+
+class Foo {
+  constructor(_foo){
+    this.foo = _foo
+  }
+}
+
+class Artefato {
+  constructor(_nomeArtefato, _nomeProjeto, _listaTarefa) {
+    this.nomeArtefato = _nomeArtefato,
+      this.nomeProjeto = _nomeProjeto,
+      this.listaTarefa = _listaTarefa
+  }
+
+  nomeArtefatoReverso() {
+    return this.nomeArtefato.split('').reverse().join('')
+  }
+}
+
+class Tarefa {
+  constructor(_numTarefa, _tipoAlteracao, _numeroAlteracao) {
+    this.numTarefa = _numTarefa,
+    this.tipoAlteracao = _tipoAlteracao,
+    this.numeroAlteracao = _numeroAlteracao
+  }
+
+  isTipoAlteracaoDelecao() {
+    return this.tipoAlteracao === 'D'
+  }
+
+  isTipoAlteracaoModificacao() {
+    return this.tipoAlteracao === 'M'
+  }
 }
